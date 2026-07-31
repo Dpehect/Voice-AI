@@ -9,6 +9,7 @@ Kendi ses örneğinizle İngilizce, Almanca, İspanyolca, İtalyanca ve Portekiz
 ## Neler sunuyor?
 
 - Next.js, React ve TypeScript ile hızlı ve mobil uyumlu arayüz
+- Aynı oturumda 20 farklı ses örneği ekleme, adlandırma ve aktif sesi seçme
 - FastAPI tabanlı doğrulamalı ses üretim API'si
 - XTTS-v2 ile beş hedef dil
 - WAV, MP3 ve M4A referans ses desteği
@@ -26,7 +27,7 @@ Kendi ses örneğinizle İngilizce, Almanca, İspanyolca, İtalyanca ve Portekiz
 3. XTTS-v2 model lisansını okuyup notebook içindeki onay kutusunu işaretleyin.
 4. Hücreleri sırasıyla çalıştırın.
 5. Son hücrede gösterilen `Voice AI hazır` bağlantısını açın.
-6. Temiz bir ses örneği yükleyin, dili seçin ve metni yazın.
+6. Bir veya daha fazla temiz ses örneği yükleyin, aktif sesi ve dili seçip metni yazın.
 
 Model ve bağımlılıklar Colab sunucusuna iner; Mac'inize büyük bir model indirilmez. İlk kurulum birkaç dakika sürebilir. Ücretsiz Colab GPU erişimi kotaya ve müsaitliğe bağlıdır.
 
@@ -82,6 +83,16 @@ cd backend && pytest
 cd ../frontend && npm run lint && npm run typecheck && npm run build
 ```
 
+### Gerçek model kabul testi
+
+Arka uç çalışırken izinli bir 3–30 saniyelik ses örneğiyle beş hedef dili uçtan uca doğrulayın:
+
+```bash
+python scripts/acceptance_test.py /path/to/reference.wav
+```
+
+Test her dil için gerçek XTTS-v2 üretimi ister, dönen WAV dosyasının okunabilir ve boş olmadığını doğrular ve sonuçları `acceptance-results/` klasörüne yazar.
+
 ## Mimari
 
 ```text
@@ -111,6 +122,7 @@ Daha temiz, yankısız ve 6–20 saniyelik bir kayıt deneyin. Fısıltı, müzi
 ## Gizlilik ve güvenlik
 
 - Yüklemeler ve sonuçlar yalnızca geçici çalışma klasöründe tutulur.
+- Arayüzdeki ses arşivi yalnızca açık tarayıcı sekmesinin belleğinde tutulur; sayfa yenilenince temizlenir.
 - Yanıt gönderildikten sonra geçici klasör silinir.
 - Uygulama veritabanı veya kullanıcı hesabı içermez.
 - Colab ve geçici tünel bağlantısı herkese açık olabileceğinden bağlantıyı paylaşmayın.
@@ -119,4 +131,3 @@ Daha temiz, yankısız ve 6–20 saniyelik bir kayıt deneyin. Fısıltı, müzi
 ## Lisans notu
 
 Bu repository içindeki özgün uygulama kodu MIT lisanslıdır. XTTS-v2 model ağırlıkları ayrı **Coqui Public Model License** koşullarına tabidir. Özellikle ticari kullanım öncesinde model lisansını ayrıca inceleyin. Repository lisansı model ağırlıklarının lisansını değiştirmez.
-

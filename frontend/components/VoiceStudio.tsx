@@ -9,8 +9,10 @@ import {
   Gauge,
   LoaderCircle,
   LockKeyhole,
+  Plus,
   RotateCcw,
   Sparkles,
+  Trash2,
   UploadCloud,
 } from "lucide-react";
 import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -25,16 +27,25 @@ const FALLBACK_LANGUAGES: Language[] = [
 ];
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
+const MAX_VOICES = 20;
 const ACCEPTED = ["audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp4", "audio/x-m4a"];
+
+type VoiceSample = {
+  id: string;
+  file: File;
+  name: string;
+  url: string;
+};
 
 export default function VoiceStudio() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const voicesRef = useRef<VoiceSample[]>([]);
   const [languages, setLanguages] = useState(FALLBACK_LANGUAGES);
   const [language, setLanguage] = useState("en");
   const [text, setText] = useState("");
   const [speed, setSpeed] = useState(1);
-  const [voice, setVoice] = useState<File | null>(null);
-  const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+  const [voices, setVoices] = useState<VoiceSample[]>([]);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -54,51 +65,104 @@ export default function VoiceStudio() {
   }, []);
 
   useEffect(() => () => {
-    if (voiceUrl) URL.revokeObjectURL(voiceUrl);
     if (resultUrl) URL.revokeObjectURL(resultUrl);
-  }, [voiceUrl, resultUrl]);
+  }, [resultUrl]);
 
-  const canSubmit = Boolean(voice && text.trim().length >= 2 && consent && !working && server === "ready");
+  useEffect(() => {
+    voicesRef.current = voices;
+  }, [voices]);
+
+  useEffect(() => () => {
+    voicesRef.current.forEach((item) => URL.revokeObjectURL(item.url));
+  }, []);
+
+  const selectedVoice = useMemo(
+    () => voices.find((item) => item.id === selectedVoiceId) ?? null,
+    [selectedVoiceId, voices],
+  );
+  const canSubmit = Boolean(selectedVoice && text.trim().length >= 2 && consent && !working && server === "ready");
   const selectedLanguage = useMemo(
     () => languages.find((item) => item.code === language),
     [language, languages],
   );
 
-  function setAudioFile(file?: File) {
+  function addAudioFiles(files: File[]) {
     setError(null);
     setResultUrl((old) => {
       if (old) URL.revokeObjectURL(old);
       return null;
     });
-    if (!file) return;
-    const extensionOk = /\.(wav|mp3|m4a)$/i.test(file.name);
-    if ((!ACCEPTED.includes(file.type) && !extensionOk) || file.size > MAX_FILE_BYTES) {
-      setError("WAV, MP3 veya M4A biçiminde ve en fazla 15 MB bir kayıt yükle.");
-      return;
+    if (!files.length) return;
+    const availableSlots = MAX_VOICES - voices.length;
+    const accepted: VoiceSample[] = [];
+    let rejected = 0;
+    for (const file of files.slice(0, Math.max(0, availableSlots))) {
+      const extensionOk = /\.(wav|mp3|m4a)$/i.test(file.name);
+      if ((!ACCEPTED.includes(file.type) && !extensionOk) || file.size > MAX_FILE_BYTES) {
+        rejected += 1;
+        continue;
+      }
+      accepted.push({
+        id: crypto.randomUUID(),
+        file,
+        name: file.name.replace(/\.(wav|mp3|m4a)$/i, ""),
+        url: URL.createObjectURL(file),
+      });
     }
-    if (voiceUrl) URL.revokeObjectURL(voiceUrl);
-    setVoice(file);
-    setVoiceUrl(URL.createObjectURL(file));
+    if (files.length > availableSlots || rejected) {
+      setError(`En fazla ${MAX_VOICES} kayıt eklenebilir; yalnızca 15 MB altındaki WAV, MP3 ve M4A dosyaları kabul edilir.`);
+    }
+    if (!accepted.length) return;
+    setVoices((current) => [...current, ...accepted]);
+    setSelectedVoiceId((current) => current ?? accepted[0].id);
   }
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
-    setAudioFile(event.target.files?.[0]);
+    addAudioFiles(Array.from(event.target.files ?? []));
+    event.target.value = "";
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setDragging(false);
-    setAudioFile(event.dataTransfer.files?.[0]);
+    addAudioFiles(Array.from(event.dataTransfer.files));
+  }
+
+  function removeVoice(id: string) {
+    setVoices((current) => {
+      const removed = current.find((item) => item.id === id);
+      if (removed) URL.revokeObjectURL(removed.url);
+      const next = current.filter((item) => item.id !== id);
+      if (selectedVoiceId === id) {
+        setSelectedVoiceId(next[0]?.id ?? null);
+        setConsent(false);
+      }
+      return next;
+    });
+  }
+
+  function selectVoice(id: string) {
+    if (id === selectedVoiceId) return;
+    setSelectedVoiceId(id);
+    setConsent(false);
+    setResultUrl((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return null;
+    });
+  }
+
+  function renameVoice(id: string, name: string) {
+    setVoices((current) => current.map((item) => item.id === id ? { ...item, name } : item));
   }
 
   async function generate() {
-    if (!voice || !canSubmit) return;
+    if (!selectedVoice || !canSubmit) return;
     setWorking(true);
     setError(null);
     if (resultUrl) URL.revokeObjectURL(resultUrl);
     setResultUrl(null);
     try {
-      const blob = await synthesize(voice, text.trim(), language, speed, consent);
+      const blob = await synthesize(selectedVoice.file, text.trim(), language, speed, consent);
       setResultUrl(URL.createObjectURL(blob));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Ses oluşturulamadı.");
@@ -108,15 +172,11 @@ export default function VoiceStudio() {
   }
 
   function reset() {
-    setVoice(null);
     setText("");
     setConsent(false);
     setError(null);
-    if (voiceUrl) URL.revokeObjectURL(voiceUrl);
     if (resultUrl) URL.revokeObjectURL(resultUrl);
-    setVoiceUrl(null);
     setResultUrl(null);
-    if (inputRef.current) inputRef.current.value = "";
   }
 
   return (
@@ -131,14 +191,14 @@ export default function VoiceStudio() {
       <section className="hero shell">
         <div className="eyebrow"><Sparkles size={15} /> Yerel ses, küresel ifade</div>
         <h1>Sesini başka bir dile<br /><em>doğal biçimde taşı.</em></h1>
-        <p>Tek bir ses örneği yükle. Metnini beş dilde, kendi ses karakterine yakın bir tonda oluştur.</p>
+        <p>Ses arşivini oluştur. İstediğin sesi seçip metnini beş dilde, o kişinin ses karakterine yakın bir tonda üret.</p>
       </section>
 
       <section className="studio shell">
         <div className="step-column">
-          <header><span>01</span><div><h2>Ses örneğin</h2><p>Temiz, müziksiz ve 6–30 saniyelik kayıt önerilir.</p></div></header>
+          <header><span>01</span><div><h2>Ses arşivin</h2><p>En fazla 20 temiz, müziksiz ve 3–30 saniyelik kayıt ekle.</p></div></header>
           <div
-            className={`dropzone ${dragging ? "dragging" : ""} ${voice ? "has-file" : ""}`}
+            className={`dropzone voice-dropzone ${dragging ? "dragging" : ""}`}
             onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
@@ -147,22 +207,33 @@ export default function VoiceStudio() {
             tabIndex={0}
             onKeyDown={(event) => event.key === "Enter" && inputRef.current?.click()}
           >
-            <input ref={inputRef} type="file" accept=".wav,.mp3,.m4a,audio/*" onChange={onFileChange} hidden />
-            {voice ? (
-              <>
-                <div className="file-icon"><FileAudio /></div>
-                <div className="file-meta"><strong>{voice.name}</strong><span>{(voice.size / 1024 / 1024).toFixed(1)} MB · değiştirmek için tıkla</span></div>
-                <CheckCircle2 className="file-check" />
-              </>
-            ) : (
-              <>
-                <div className="upload-icon"><UploadCloud /></div>
-                <strong>Ses kaydını buraya bırak</strong>
-                <span>veya bilgisayarından seç · WAV, MP3, M4A · maks. 15 MB</span>
-              </>
-            )}
+            <input ref={inputRef} type="file" multiple accept=".wav,.mp3,.m4a,audio/*" onChange={onFileChange} hidden />
+            <div className="upload-icon"><UploadCloud /></div>
+            <strong>Ses kayıtlarını buraya bırak</strong>
+            <span>Birden fazla seçebilirsin · WAV, MP3, M4A · dosya başına maks. 15 MB</span>
           </div>
-          {voiceUrl && <audio className="audio-preview" controls src={voiceUrl} />}
+          {voices.length > 0 && (
+            <div className="voice-library">
+              <div className="voice-library-head"><span>{voices.length} / {MAX_VOICES} ses</span><button type="button" onClick={() => inputRef.current?.click()}><Plus size={14} /> Ses ekle</button></div>
+              <div className="voice-list">
+                {voices.map((item) => (
+                  <div key={item.id} className={`voice-item ${item.id === selectedVoiceId ? "active" : ""}`} onClick={() => selectVoice(item.id)}>
+                    <button type="button" className="voice-select" aria-label={`${item.name} sesini seç`}>
+                      <FileAudio size={18} />
+                    </button>
+                    <div className="voice-details">
+                      <input value={item.name} aria-label="Ses adı" maxLength={40} onClick={(event) => event.stopPropagation()} onChange={(event) => renameVoice(item.id, event.target.value)} />
+                      <span>{(item.file.size / 1024 / 1024).toFixed(1)} MB</span>
+                    </div>
+                    {item.id === selectedVoiceId && <CheckCircle2 className="voice-active-icon" size={18} />}
+                    <button type="button" className="voice-remove" aria-label={`${item.name} kaydını sil`} onClick={(event) => { event.stopPropagation(); removeVoice(item.id); }}><Trash2 size={16} /></button>
+                  </div>
+                ))}
+              </div>
+              {selectedVoice && <audio className="audio-preview" controls src={selectedVoice.url} />}
+              <p className="session-note"><LockKeyhole size={13} /> Arşiv yalnızca bu tarayıcı oturumunda tutulur.</p>
+            </div>
+          )}
         </div>
 
         <div className="step-column">
@@ -191,7 +262,7 @@ export default function VoiceStudio() {
           <label className="consent">
             <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
             <span className="checkmark" />
-            <span>Bu sesin bana ait olduğunu veya kullanmak için açık iznim bulunduğunu onaylıyorum.</span>
+            <span>Seçili sesin sahibinden klonlama ve oluşturacağım içerik için açık izin aldığımı onaylıyorum.</span>
           </label>
           {error && <div className="error"><AlertCircle size={18} /> {error}</div>}
           {server === "offline" && <div className="error"><AlertCircle size={18} /> Colab arka ucu kapalı. Notebook hücresini yeniden çalıştır.</div>}
@@ -206,7 +277,7 @@ export default function VoiceStudio() {
             <div className="result-heading"><span><CheckCircle2 /></span><div><small>HAZIR</small><h3>Ses kaydın oluşturuldu</h3></div></div>
             <audio controls autoPlay src={resultUrl} />
             <div className="result-actions">
-              <a href={resultUrl} download={`voice-ai-${language}.wav`}><Download size={17} /> WAV indir</a>
+              <a href={resultUrl} download={`voice-ai-${selectedVoice?.name || "voice"}-${language}.wav`}><Download size={17} /> WAV indir</a>
               <button type="button" onClick={reset}><RotateCcw size={17} /> Yeni kayıt</button>
             </div>
           </div>
@@ -217,4 +288,3 @@ export default function VoiceStudio() {
     </main>
   );
 }
-

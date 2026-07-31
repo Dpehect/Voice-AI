@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import gc
 import re
 import threading
 from typing import Any
@@ -85,20 +86,28 @@ class VoiceEngine:
         temp_parts: list[Path] = []
         raw_output = output.with_name("raw-output.wav")
         with self._generation_lock:
-            model = self._load()
-            for index, chunk in enumerate(chunks):
-                part = output.with_name(f"part-{index:03d}.wav")
-                model.tts_to_file(
-                    text=chunk,
-                    speaker_wav=str(reference),
-                    language=language,
-                    file_path=str(part),
-                    split_sentences=False,
-                )
-                temp_parts.append(part)
-            concatenate_wavs(temp_parts, raw_output)
-            apply_speed(raw_output, output, speed)
+            try:
+                model = self._load()
+                for index, chunk in enumerate(chunks):
+                    part = output.with_name(f"part-{index:03d}.wav")
+                    model.tts_to_file(
+                        text=chunk,
+                        speaker_wav=str(reference),
+                        language=language,
+                        file_path=str(part),
+                        split_sentences=False,
+                    )
+                    temp_parts.append(part)
+                concatenate_wavs(temp_parts, raw_output)
+                apply_speed(raw_output, output, speed)
+            finally:
+                gc.collect()
+                if self._device == "cuda":
+                    try:
+                        import torch
+                        torch.cuda.empty_cache()
+                    except (ImportError, RuntimeError):
+                        pass
 
 
 voice_engine = VoiceEngine()
-
