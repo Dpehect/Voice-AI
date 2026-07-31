@@ -1,0 +1,15 @@
+node_modules/
+.next/
+frontend/.env*.local
+frontend/.env.production
+__pycache__/
+.pytest_cache/
+.venv/
+.test-venv/
+*.py[cod]
+*.tsbuildinfo
+*.wav
+*.mp3
+*.m4a
+!.github/assets/*.wav
+.DS_Store
