@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getHealth, getLanguages, Language, synthesize } from "@/lib/api";
+import { loadStoredVoices, saveStoredVoices } from "@/lib/voiceLibrary";
 
 const FALLBACK_LANGUAGES: Language[] = [
   { code: "en", name: "İngilizce", native_name: "English" },
@@ -45,6 +46,7 @@ export default function VoiceStudio() {
   const [text, setText] = useState("");
   const [speed, setSpeed] = useState(1);
   const [voices, setVoices] = useState<VoiceSample[]>([]);
+  const [libraryLoaded, setLibraryLoaded] = useState(false);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
@@ -63,6 +65,26 @@ export default function VoiceStudio() {
       .catch(() => setServer("offline"));
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    loadStoredVoices()
+      .then((stored) => {
+        const restored = stored.slice(0, MAX_VOICES).map((item) => ({
+          ...item,
+          url: URL.createObjectURL(item.file),
+        }));
+        setVoices(restored);
+        setSelectedVoiceId(restored[0]?.id ?? null);
+      })
+      .catch(() => setError("Tarayıcıdaki ses arşivi açılamadı."))
+      .finally(() => setLibraryLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (!libraryLoaded) return;
+    saveStoredVoices(voices.map(({ id, name, file }) => ({ id, name, file })))
+      .catch(() => setError("Ses arşivi tarayıcıya kaydedilemedi."));
+  }, [libraryLoaded, voices]);
 
   useEffect(() => () => {
     if (resultUrl) URL.revokeObjectURL(resultUrl);
@@ -231,7 +253,7 @@ export default function VoiceStudio() {
                 ))}
               </div>
               {selectedVoice && <audio className="audio-preview" controls src={selectedVoice.url} />}
-              <p className="session-note"><LockKeyhole size={13} /> Arşiv yalnızca bu tarayıcı oturumunda tutulur.</p>
+              <p className="session-note"><LockKeyhole size={13} /> Arşiv bu cihazdaki tarayıcıda saklanır; sunucuya kaydedilmez.</p>
             </div>
           )}
         </div>
