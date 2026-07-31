@@ -7,6 +7,50 @@ Open-source multilingual voice-cloning and text-to-speech prototype powered by X
 > [!IMPORTANT]
 > Use only your own voice or recordings for which you have explicit permission. Do not use this project for impersonation, deception, fraud, or unauthorized voice cloning.
 
+## How to Run Voice AI Every Time
+
+You do not need to install the project on your Mac. Follow this checklist whenever you want to use it:
+
+1. Open the [Voice AI Google Colab notebook](https://colab.research.google.com/github/Dpehect/Voice-AI/blob/main/Voice_AI_Colab.ipynb).
+2. Sign in to your Google account if Colab asks.
+3. From the Colab menu, select **Runtime → Change runtime type**.
+4. Set **Hardware accelerator** to **T4 GPU**, then save.
+5. In the first consent code cell, make sure both values are:
+
+~~~python
+accept_xtts_license = True
+confirm_voice_permission = True
+~~~
+
+6. Press the play button next to that cell. It should print **Onaylar kaydedildi**.
+7. Run the code cell under **2. Kurulum / Installation**. Wait until it prints **Kurulum tamamlandı**. The first installation can take several minutes.
+8. Run the code cell under **3. Uygulamayı başlat / Start the application**.
+9. Keep the Colab tab open and wait for the green **Voice AI hazır** panel.
+10. Click **Voice AI'ı aç** to open the application.
+11. Add an authorized WAV, MP3, or M4A voice sample.
+12. Select the saved voice, choose a target language, type the text in that language, confirm permission, and click **Sesimi oluştur**.
+13. Preview the result or download it as a WAV file.
+
+> [!NOTE]
+> Colab sessions and application links are temporary. The next day, repeat this checklist and use the newly generated link. Yesterday's link will usually no longer work.
+
+### If the notebook was already open
+
+The GitHub version may have changed. Run this in a new Colab code cell before starting:
+
+~~~python
+!git -C /content/Voice-AI pull --ff-only
+~~~
+
+If the folder does not exist yet, skip this command and run the **Installation** cell normally.
+
+### What must stay open
+
+- Keep the Google Colab tab open while using Voice AI.
+- Do not stop the running Colab cells.
+- Do not close or disconnect the runtime during generation.
+- The first voice generation loads XTTS-v2 and may take several minutes.
+
 ## Features
 
 - Multilingual voice cloning with XTTS-v2
@@ -38,8 +82,8 @@ confirm_voice_permission = True
 ~~~
 
 4. Run the consent cell.
-5. Run the **Installation** cell and wait for it to finish.
-6. Run the **Start the application** cell.
+5. Run the **2. Kurulum / Installation** cell and wait for it to finish.
+6. Run the **3. Uygulamayı başlat / Start the application** cell.
 7. Wait for the green **Voice AI is ready** panel.
 8. Open the generated application link.
 9. Add a voice sample, select the voice and language, enter text, confirm permission, and generate speech.
