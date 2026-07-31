@@ -17,6 +17,12 @@ SAMPLES = {
     "pt": "Olá, este é o teste de aceitação do Voice AI.",
 }
 
+CONTENT_TYPES = {
+    ".wav": "audio/wav",
+    ".mp3": "audio/mpeg",
+    ".m4a": "audio/mp4",
+}
+
 
 def validate_wav(content: bytes, output: Path) -> float:
     output.write_bytes(content)
@@ -37,6 +43,9 @@ def main() -> int:
 
     if not args.reference.is_file():
         parser.error(f"Ses örneği bulunamadı: {args.reference}")
+    content_type = CONTENT_TYPES.get(args.reference.suffix.lower())
+    if content_type is None:
+        parser.error("Ses örneği WAV, MP3 veya M4A biçiminde olmalıdır.")
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     health = requests.get(f"{args.api_url.rstrip('/')}/api/health", timeout=10)
@@ -50,7 +59,7 @@ def main() -> int:
                 response = requests.post(
                     f"{args.api_url.rstrip('/')}/api/synthesize",
                     data={"text": text, "language": language, "speed": "1", "consent": "true"},
-                    files={"voice": (args.reference.name, reference)},
+                    files={"voice": (args.reference.name, reference, content_type)},
                     timeout=600,
                 )
             response.raise_for_status()
