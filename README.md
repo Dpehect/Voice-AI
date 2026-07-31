@@ -1,133 +1,200 @@
 # Voice AI
 
-Kendi ses örneğinizle İngilizce, Almanca, İspanyolca, İtalyanca ve Portekizce metinleri seslendiren, API anahtarı gerektirmeyen açık kaynaklı Colab prototipi.
+Open-source multilingual voice-cloning and text-to-speech prototype powered by XTTS-v2. Upload authorized voice samples, select a target language, enter text, and generate WAV speech in the selected voice — without a paid API key.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Dpehect/Voice-AI/blob/main/Voice_AI_Colab.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Dpehect/Voice-AI/blob/main/Voice_AI_Colab.ipynb)
 
-> Bu proje yalnızca size ait veya kullanmak için açık izin aldığınız seslerle kullanılmalıdır.
+> [!IMPORTANT]
+> Use only your own voice or recordings for which you have explicit permission. Do not use this project for impersonation, deception, fraud, or unauthorized voice cloning.
 
-## Neler sunuyor?
+## Features
 
-- Next.js, React ve TypeScript ile hızlı ve mobil uyumlu arayüz
-- Aynı oturumda 20 farklı ses örneği ekleme, adlandırma ve aktif sesi seçme
-- FastAPI tabanlı doğrulamalı ses üretim API'si
-- XTTS-v2 ile beş hedef dil
-- WAV, MP3 ve M4A referans ses desteği
-- Otomatik ses normalizasyonu ve 3–30 saniye süre kontrolü
-- 2.000 karaktere kadar metni güvenli parçalara bölme
-- Konuşma hızı kontrolü
-- Geçici dosyaları istek sonunda otomatik silme
-- Modeli bir kez yükleyerek sonraki üretimleri hızlandırma
-- Ücretli API anahtarı veya kredi kartı gerektirmeme
+- Multilingual voice cloning with XTTS-v2
+- English, German, Spanish, Italian, and Portuguese output
+- Multiple named voice samples in a browser-based voice library
+- Local browser persistence with IndexedDB
+- Text-to-speech with the selected voice and target language
+- WAV, MP3, and M4A reference-audio support
+- Automatic validation and normalization with FFmpeg
+- 3–30 second reference-audio validation
+- Up to 2,000 characters per request with safe text chunking
+- Adjustable speech speed
+- Automatic cleanup of temporary backend files
+- Next.js, React, and TypeScript frontend
+- FastAPI backend with GPU-aware XTTS-v2 loading
+- Free Google Colab workflow with no paid API key required
 
-## En kolay kullanım: Google Colab
+## Quick Start with Google Colab
 
-1. Yukarıdaki **Open in Colab** düğmesine basın.
-2. Colab'da **Çalışma zamanı → Çalışma zamanı türünü değiştir → T4 GPU** seçin.
-3. XTTS-v2 model lisansını okuyup notebook içindeki onay kutusunu işaretleyin.
-4. Hücreleri sırasıyla çalıştırın.
-5. Son hücrede gösterilen `Voice AI hazır` bağlantısını açın.
-6. Bir veya daha fazla temiz ses örneği yükleyin, aktif sesi ve dili seçip metni yazın.
+The easiest free way to run Voice AI is Google Colab.
 
-Model ve bağımlılıklar Colab sunucusuna iner; Mac'inize büyük bir model indirilmez. İlk kurulum birkaç dakika sürebilir. Ücretsiz Colab GPU erişimi kotaya ve müsaitliğe bağlıdır.
+1. Open the [Voice AI Colab notebook](https://colab.research.google.com/github/Dpehect/Voice-AI/blob/main/Voice_AI_Colab.ipynb).
+2. Select **Runtime → Change runtime type → T4 GPU**.
+3. Set both consent values to **True**:
 
-## İyi ses örneği
+~~~python
+accept_xtts_license = True
+confirm_voice_permission = True
+~~~
 
-- 6–20 saniye genellikle yeterlidir.
-- Tek kişi konuşmalıdır.
-- Arka planda müzik, yankı veya başka ses olmamalıdır.
-- Normal hız ve doğal ton kullanılmalıdır.
-- Hedef dilde noktalama işaretleri düzgün bir metin yazılmalıdır.
+4. Run the consent cell.
+5. Run the **Installation** cell and wait for it to finish.
+6. Run the **Start the application** cell.
+7. Wait for the green **Voice AI is ready** panel.
+8. Open the generated application link.
+9. Add a voice sample, select the voice and language, enter text, confirm permission, and generate speech.
 
-## Desteklenen diller
+The first generation downloads and loads XTTS-v2, so it can take several minutes. Later generations in the same Colab session are faster.
 
-| Kod | Dil | Model adı |
+## Running It Again Tomorrow
+
+Colab sessions are temporary. To use the project on another day:
+
+1. Open the [same Colab notebook](https://colab.research.google.com/github/Dpehect/Voice-AI/blob/main/Voice_AI_Colab.ipynb).
+2. Select a **T4 GPU** runtime.
+3. Confirm that both consent values are **True**.
+4. Run the notebook cells from top to bottom.
+5. Wait for the new temporary application URL.
+6. Open the URL and use the voice library.
+
+Every new Colab session creates a new application URL. Do not reuse yesterday's URL.
+
+## How It Works
+
+~~~text
+Next.js UI
+    ↓
+FastAPI API
+    ↓
+FFmpeg validation and normalization
+    ↓
+XTTS-v2 voice cloning on GPU
+    ↓
+WAV output
+~~~
+
+The selected voice sample is uploaded only when speech is generated. The backend normalizes the recording, splits long text into safe chunks, runs XTTS-v2 sequentially, joins the generated WAV parts, applies the selected speed, and removes temporary server files after the response.
+
+## Voice Library
+
+- Add up to 20 WAV, MP3, or M4A voice samples.
+- Rename samples and switch between them before generation.
+- The library is stored locally in the current browser using IndexedDB.
+- Voice samples are not permanently uploaded to the backend.
+- Clearing browser website data also deletes the local voice library.
+- A different browser or browser profile has a separate library.
+
+## Supported Languages
+
+| Code | Language | Native name |
 | --- | --- | --- |
-| `en` | İngilizce | English |
-| `de` | Almanca | Deutsch |
-| `es` | İspanyolca | Español |
-| `it` | İtalyanca | Italiano |
-| `pt` | Portekizce | Português |
+| en | English | English |
+| de | German | Deutsch |
+| es | Spanish | Español |
+| it | Italian | Italiano |
+| pt | Portuguese | Português |
 
-## Yerel geliştirme
+Write the input text in the selected target language. The application clones voice characteristics; it does not translate text automatically.
 
-Ön koşullar: Node.js 20+, Python 3.10–3.12 ve FFmpeg.
+## Recommended Voice Sample
 
-### Arka uç
+- 6–20 seconds is usually ideal.
+- Use a single speaker.
+- Record in a quiet room.
+- Avoid music, echo, background speech, and strong noise.
+- Speak naturally at a normal pace.
+- Prefer a direct microphone recording over replayed audio.
 
-```bash
+## Local Development
+
+### Requirements
+
+- Node.js 20 or newer
+- Python 3.10–3.12
+- FFmpeg
+- NVIDIA GPU recommended for practical XTTS-v2 inference
+
+### Backend
+
+~~~bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
 export COQUI_TOS_AGREED=1
 uvicorn app.main:app --reload
-```
+~~~
 
-`COQUI_TOS_AGREED=1` değişkeni yalnızca XTTS-v2 model lisansını okuyup kabul ettiyseniz kullanılmalıdır.
+Set **COQUI_TOS_AGREED=1** only after reading and accepting the XTTS-v2 model license.
 
-### Ön yüz
+### Frontend
 
-```bash
+~~~bash
 cd frontend
 npm install
 NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
-```
+~~~
 
-Tarayıcıda `http://localhost:3000` adresini açın.
+Open [http://localhost:3000](http://localhost:3000).
 
-### Testler
+## Validation
 
-```bash
-cd backend && pytest
-cd ../frontend && npm run lint && npm run typecheck && npm run build
-```
+~~~bash
+cd backend
+pytest
 
-### Gerçek model kabul testi
+cd ../frontend
+npm run lint
+npm run typecheck
+npm run build
+~~~
 
-Arka uç çalışırken izinli bir 3–30 saniyelik ses örneğiyle beş hedef dili uçtan uca doğrulayın:
+Run the real five-language XTTS-v2 acceptance test while the backend is running:
 
-```bash
-python scripts/acceptance_test.py /path/to/reference.wav
-```
+~~~bash
+python scripts/acceptance_test.py /path/to/authorized-reference.m4a
+~~~
 
-Test her dil için gerçek XTTS-v2 üretimi ister, dönen WAV dosyasının okunabilir ve boş olmadığını doğrular ve sonuçları `acceptance-results/` klasörüne yazar.
+Generated validation files are written to **acceptance-results/**.
 
-## Mimari
+## Troubleshooting
 
-```text
-Next.js UI → FastAPI → FFmpeg ön işleme → XTTS-v2 → WAV çıktı
-```
+### GPU server is offline
 
-XTTS modeli ilk üretimde yüklenir ve aynı Colab oturumunda bellekte kalır. GPU bellek taşmasını önlemek için aynı anda tek üretim yapılır. Uzun metinler kontrollü parçalara bölünür ve kayıpsız WAV olarak birleştirilir.
+The Colab runtime or temporary tunnel has stopped. Restart the notebook and use the newly generated application URL.
 
-## Sorun giderme
+### The first generation is slow
 
-### “GPU sunucusu çevrimdışı”
+XTTS-v2 is downloaded and loaded into GPU memory on the first request. Do not interrupt the first generation.
 
-Colab oturumu kapanmış olabilir. Notebook'taki başlatma hücresini yeniden çalıştırın ve yeni uygulama bağlantısını açın.
+### Coqui TTS is not installed
 
-### İlk üretim çok uzun sürüyor
+Pull the latest repository changes and rerun the installation cell. The project pins a Transformers version compatible with the current Coqui TTS package.
 
-İlk istekte XTTS modeli GPU belleğine yüklenir. Sonraki üretimler daha hızlı olur. Colab çalışma zamanında GPU seçildiğini doğrulayın.
+### Colab does not provide a GPU
 
-### Ses benzerliği düşük
+Free GPU availability is not guaranteed. Try again later. CPU inference is possible but significantly slower.
 
-Daha temiz, yankısız ve 6–20 saniyelik bir kayıt deneyin. Fısıltı, müzik ve telefon hoparlöründen yeniden kaydedilmiş ses kaliteyi düşürür.
+### Voice similarity is weak
 
-### Colab GPU vermiyor
+Use a clean, natural, echo-free recording between 6 and 20 seconds. Avoid whispered speech and heavily compressed or replayed audio.
 
-Ücretsiz GPU erişimi garanti edilmez. Daha sonra yeniden deneyebilir veya CPU ile çalıştırabilirsiniz; CPU üretimi belirgin biçimde daha yavaştır.
+### The application link no longer works
 
-## Gizlilik ve güvenlik
+Colab URLs are temporary. Reopen the notebook, start a new session, and use the new URL.
 
-- Yüklemeler ve sonuçlar yalnızca geçici çalışma klasöründe tutulur.
-- Arayüzdeki ses arşivi yalnızca açık tarayıcı sekmesinin belleğinde tutulur; sayfa yenilenince temizlenir.
-- Yanıt gönderildikten sonra geçici klasör silinir.
-- Uygulama veritabanı veya kullanıcı hesabı içermez.
-- Colab ve geçici tünel bağlantısı herkese açık olabileceğinden bağlantıyı paylaşmayın.
-- Bir kişinin sesini izinsiz taklit etmek, kimliğe bürünmek veya yanıltıcı içerik üretmek için kullanmayın.
+## Privacy and Safety
 
-## Lisans notu
+- Backend uploads and generated files are temporary.
+- Temporary request directories are deleted after a response.
+- The browser voice library stays on the user's device.
+- The project has no user accounts or cloud database.
+- Temporary tunnel URLs can be reachable from the internet; do not share them.
+- Do not clone a person's voice without explicit permission.
+- Do not use generated audio to impersonate someone or mislead listeners.
 
-Bu repository içindeki özgün uygulama kodu MIT lisanslıdır. XTTS-v2 model ağırlıkları ayrı **Coqui Public Model License** koşullarına tabidir. Özellikle ticari kullanım öncesinde model lisansını ayrıca inceleyin. Repository lisansı model ağırlıklarının lisansını değiştirmez.
+## License
+
+The original application code in this repository is available under the [MIT License](LICENSE).
+
+XTTS-v2 model weights are distributed under the separate Coqui Public Model License. Review the model license before use, especially for commercial purposes. The repository's MIT license does not change the model weights' license.
