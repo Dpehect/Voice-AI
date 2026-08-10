@@ -295,22 +295,34 @@ export default function VoiceStudio() {
       <section className="studio shell">
         <div className="step-column">
           <header><span>01</span><div><h2>Ses arşivin</h2><p>En fazla 20 temiz, müziksiz ve 3–30 saniyelik kayıt ekle.</p></div></header>
-          <div
+          <label
+            htmlFor="voice-file-input"
             className={`dropzone voice-dropzone ${dragging ? "dragging" : ""}`}
             onDragEnter={onDragEnter}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
-            onClick={() => inputRef.current?.click()}
-            role="button"
             tabIndex={0}
-            onKeyDown={(event) => event.key === "Enter" && inputRef.current?.click()}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                inputRef.current?.click();
+              }
+            }}
           >
-            <input ref={inputRef} type="file" multiple accept="audio/*,.wav,.mp3,.m4a,.aac,.flac,.ogg,.webm" onChange={onFileChange} hidden />
+            <input
+              id="voice-file-input"
+              ref={inputRef}
+              type="file"
+              multiple
+              accept="audio/*,.wav,.mp3,.m4a,.aac,.flac,.ogg,.webm"
+              onChange={onFileChange}
+              style={{ display: "none" }}
+            />
             <div className="upload-icon"><UploadCloud /></div>
-            <strong>Ses kayıtlarını buraya bırak</strong>
-            <span>Birden fazla seçebilirsin · WAV, MP3, M4A · dosya başına maks. 15 MB</span>
-          </div>
+            <strong>Ses kayıtlarını buraya bırak veya seçmek için tıkla</strong>
+            <span>Birden fazla seçebilirsin · İndirilenler, Masaüstü vb. · WAV, MP3, M4A · maks. 15 MB</span>
+          </label>
           {voices.length > 0 && (
             <div className="voice-library">
               <div className="voice-library-head"><span>{voices.length} / {MAX_VOICES} ses</span><button type="button" onClick={() => inputRef.current?.click()}><Plus size={14} /> Ses ekle</button></div>
