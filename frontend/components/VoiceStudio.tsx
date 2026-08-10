@@ -133,45 +133,97 @@ export default function VoiceStudio() {
       if (old) URL.revokeObjectURL(old);
       return null;
     });
-    if (!files.length) return;
+    if (!files || !files.length) return;
+
+    if (voices.length >= MAX_VOICES) {
+      setError(`En fazla ${MAX_VOICES} ses kaydı eklenebilir.`);
+      return;
+    }
+
     const availableSlots = MAX_VOICES - voices.length;
     const accepted: VoiceSample[] = [];
-    let rejected = 0;
-    for (const file of files.slice(0, Math.max(0, availableSlots))) {
-      const extensionOk = /\.(wav|mp3|m4a)$/i.test(file.name);
-      if ((!ACCEPTED.includes(file.type) && !extensionOk) || file.size > MAX_FILE_BYTES) {
-        rejected += 1;
+    let rejectedSize = 0;
+    let rejectedFormat = 0;
+
+    for (const file of files.slice(0, availableSlots)) {
+      if (file.size > MAX_FILE_BYTES) {
+        rejectedSize += 1;
         continue;
       }
+
+      const mimeType = (file.type || "").toLowerCase();
+      const fileName = (file.name || "").toLowerCase();
+
+      const isAudioMime = mimeType.startsWith("audio/") || mimeType === "application/octet-stream" || mimeType === "";
+      const isAudioExt = /\.(wav|mp3|m4a|aac|ogg|webm|flac|caf|m4r|3gp|mp4|wma)$/i.test(fileName) || !/\.[a-z0-9]+$/i.test(fileName);
+
+      if (!isAudioMime && !isAudioExt) {
+        rejectedFormat += 1;
+        continue;
+      }
+
       try {
         const url = URL.createObjectURL(file);
+        const name = file.name ? file.name.replace(/\.[a-z0-9]+$/i, "") : "Ses kaydı";
         accepted.push({
           id: generateId(),
           file,
-          name: file.name.replace(/\.(wav|mp3|m4a)$/i, ""),
+          name: name || "Ses kaydı",
           url,
         });
       } catch {
-        rejected += 1;
+        rejectedFormat += 1;
       }
     }
-    if (files.length > availableSlots || rejected) {
-      setError(`En fazla ${MAX_VOICES} kayıt eklenebilir; yalnızca 15 MB altındaki WAV, MP3 ve M4A dosyaları kabul edilir.`);
+
+    if (rejectedSize > 0) {
+      setError("Yüklenen dosya 15 MB sınırını aşıyor.");
+    } else if (rejectedFormat > 0) {
+      setError("Yalnızca ses dosyaları kabul edilir (WAV, MP3, M4A vb.).");
+    } else if (files.length > availableSlots) {
+      setError(`En fazla ${MAX_VOICES} ses kaydı eklenebilir.`);
     }
+
     if (!accepted.length) return;
     setVoices((current) => [...current, ...accepted]);
     setSelectedVoiceId((current) => current ?? accepted[0].id);
   }
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
-    addAudioFiles(Array.from(event.target.files ?? []));
+    if (event.target.files && event.target.files.length > 0) {
+      addAudioFiles(Array.from(event.target.files));
+    }
     event.target.value = "";
+  }
+
+  function onDragEnter(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragging(true);
+  }
+
+  function onDragOver(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "copy";
+    }
+    setDragging(true);
+  }
+
+  function onDragLeave(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragging(false);
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
+    event.stopPropagation();
     setDragging(false);
-    addAudioFiles(Array.from(event.dataTransfer.files));
+    if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      addAudioFiles(Array.from(event.dataTransfer.files));
+    }
   }
 
   function removeVoice(id: string) {
@@ -245,15 +297,16 @@ export default function VoiceStudio() {
           <header><span>01</span><div><h2>Ses arşivin</h2><p>En fazla 20 temiz, müziksiz ve 3–30 saniyelik kayıt ekle.</p></div></header>
           <div
             className={`dropzone voice-dropzone ${dragging ? "dragging" : ""}`}
-            onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
+            onDragEnter={onDragEnter}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
             onDrop={onDrop}
             onClick={() => inputRef.current?.click()}
             role="button"
             tabIndex={0}
             onKeyDown={(event) => event.key === "Enter" && inputRef.current?.click()}
           >
-            <input ref={inputRef} type="file" multiple accept=".wav,.mp3,.m4a,audio/*" onChange={onFileChange} hidden />
+            <input ref={inputRef} type="file" multiple accept="audio/*,.wav,.mp3,.m4a,.aac,.flac,.ogg,.webm" onChange={onFileChange} hidden />
             <div className="upload-icon"><UploadCloud /></div>
             <strong>Ses kayıtlarını buraya bırak</strong>
             <span>Birden fazla seçebilirsin · WAV, MP3, M4A · dosya başına maks. 15 MB</span>
