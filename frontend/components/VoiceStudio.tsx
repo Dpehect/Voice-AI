@@ -29,7 +29,6 @@ const FALLBACK_LANGUAGES: Language[] = [
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
 const MAX_VOICES = 20;
-const ACCEPTED = ["audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp4", "audio/x-m4a"];
 
 type VoiceSample = {
   id: string;
@@ -196,13 +195,13 @@ export default function VoiceStudio() {
     event.target.value = "";
   }
 
-  function onDragEnter(event: DragEvent<HTMLDivElement>) {
+  function onDragEnter(event: DragEvent<HTMLElement>) {
     event.preventDefault();
     event.stopPropagation();
     setDragging(true);
   }
 
-  function onDragOver(event: DragEvent<HTMLDivElement>) {
+  function onDragOver(event: DragEvent<HTMLElement>) {
     event.preventDefault();
     event.stopPropagation();
     if (event.dataTransfer) {
@@ -211,13 +210,13 @@ export default function VoiceStudio() {
     setDragging(true);
   }
 
-  function onDragLeave(event: DragEvent<HTMLDivElement>) {
+  function onDragLeave(event: DragEvent<HTMLElement>) {
     event.preventDefault();
     event.stopPropagation();
     setDragging(false);
   }
 
-  function onDrop(event: DragEvent<HTMLDivElement>) {
+  function onDrop(event: DragEvent<HTMLElement>) {
     event.preventDefault();
     event.stopPropagation();
     setDragging(false);
