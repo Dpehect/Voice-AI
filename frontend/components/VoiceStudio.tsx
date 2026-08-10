@@ -38,6 +38,17 @@ type VoiceSample = {
   url: string;
 };
 
+function generateId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    try {
+      return crypto.randomUUID();
+    } catch {
+      // Fallback
+    }
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 export default function VoiceStudio() {
   const inputRef = useRef<HTMLInputElement>(null);
   const voicesRef = useRef<VoiceSample[]>([]);
@@ -69,10 +80,18 @@ export default function VoiceStudio() {
   useEffect(() => {
     loadStoredVoices()
       .then((stored) => {
-        const restored = stored.slice(0, MAX_VOICES).map((item) => ({
-          ...item,
-          url: URL.createObjectURL(item.file),
-        }));
+        const restored: VoiceSample[] = [];
+        for (const item of stored.slice(0, MAX_VOICES)) {
+          if (!item.file || !(item.file instanceof Blob)) continue;
+          try {
+            restored.push({
+              ...item,
+              url: URL.createObjectURL(item.file),
+            });
+          } catch {
+            // Ignore invalid blob url
+          }
+        }
         setVoices(restored);
         setSelectedVoiceId(restored[0]?.id ?? null);
       })
@@ -124,12 +143,17 @@ export default function VoiceStudio() {
         rejected += 1;
         continue;
       }
-      accepted.push({
-        id: crypto.randomUUID(),
-        file,
-        name: file.name.replace(/\.(wav|mp3|m4a)$/i, ""),
-        url: URL.createObjectURL(file),
-      });
+      try {
+        const url = URL.createObjectURL(file);
+        accepted.push({
+          id: generateId(),
+          file,
+          name: file.name.replace(/\.(wav|mp3|m4a)$/i, ""),
+          url,
+        });
+      } catch {
+        rejected += 1;
+      }
     }
     if (files.length > availableSlots || rejected) {
       setError(`En fazla ${MAX_VOICES} kayıt eklenebilir; yalnızca 15 MB altındaki WAV, MP3 ve M4A dosyaları kabul edilir.`);

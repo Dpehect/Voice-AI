@@ -14,8 +14,17 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").rep
 
 async function parseError(response: Response): Promise<string> {
   try {
-    const body = (await response.json()) as { detail?: string };
-    return body.detail || "İşlem tamamlanamadı.";
+    const text = await response.text();
+    try {
+      const body = JSON.parse(text) as { detail?: string };
+      if (body.detail) return body.detail;
+    } catch {
+      // Ignore JSON parse error
+    }
+    if (response.status === 504 || response.status === 502) {
+      return "Sunucu yanıt vermedi veya işlem zaman aşımına uğradı. Lütfen tekrar deneyin.";
+    }
+    return `Sunucu hatası (${response.status}).`;
   } catch {
     return "Sunucuyla bağlantı kurulamadı.";
   }

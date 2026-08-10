@@ -1,10 +1,11 @@
-from __future__ import annotations
-
+import os
 from pathlib import Path
 import gc
 import re
 import threading
 from typing import Any
+
+os.environ["COQUI_TOS_AGREED"] = "1"
 
 from app.config import settings
 from app.services.audio import apply_speed, concatenate_wavs
@@ -24,24 +25,39 @@ def split_text(text: str, limit: int = 240) -> list[str]:
     compact = re.sub(r"\s+", " ", text).strip()
     if not compact:
         return []
-    sentences = re.split(r"(?<=[.!?;:])\s+", compact)
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?;:])\s+", compact) if s.strip()]
     chunks: list[str] = []
     current = ""
     for sentence in sentences:
-        words = sentence.split()
-        for word in words:
-            candidate = f"{current} {word}".strip()
-            if len(candidate) > limit and current:
-                chunks.append(current)
-                current = word
-            else:
-                current = candidate
-        if current and len(current) >= limit * 0.6:
+        if not current:
+            current = sentence
+        elif len(current) + 1 + len(sentence) <= limit:
+            current = f"{current} {sentence}"
+        else:
             chunks.append(current)
-            current = ""
+            current = sentence
     if current:
         chunks.append(current)
-    return chunks
+
+    final_chunks: list[str] = []
+    for chunk in chunks:
+        if len(chunk) <= limit:
+            final_chunks.append(chunk)
+        else:
+            sub_parts = [p.strip() for p in re.split(r"(?<=[,;])\s+", chunk) if p.strip()]
+            sub_curr = ""
+            for part in sub_parts:
+                if not sub_curr:
+                    sub_curr = part
+                elif len(sub_curr) + 1 + len(part) <= limit:
+                    sub_curr = f"{sub_curr} {part}"
+                else:
+                    final_chunks.append(sub_curr)
+                    sub_curr = part
+            if sub_curr:
+                final_chunks.append(sub_curr)
+
+    return final_chunks
 
 
 class VoiceEngine:

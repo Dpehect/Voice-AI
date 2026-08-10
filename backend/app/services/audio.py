@@ -54,11 +54,12 @@ def concatenate_wavs(parts: list[Path], destination: Path) -> None:
         frames = [first.readframes(first.getnframes())]
     for part in parts[1:]:
         with wave.open(str(part), "rb") as current:
-            if current.getparams()[:4] != params[:4]:
+            if current.getparams()[:3] != params[:3]:
                 raise AudioProcessingError("Üretilen ses parçalarının biçimleri uyuşmuyor.")
             frames.append(current.readframes(current.getnframes()))
     with wave.open(str(destination), "wb") as output:
         output.setparams(params)
+        output.setnframes(sum(len(b) // (params.sampwidth * params.nchannels) for b in frames))
         for block in frames:
             output.writeframes(block)
 

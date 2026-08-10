@@ -29,7 +29,12 @@ app.add_middleware(
 )
 
 ALLOWED_EXTENSIONS = {".wav", ".mp3", ".m4a"}
-ALLOWED_CONTENT_TYPES = {"audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp4", "audio/x-m4a"}
+ALLOWED_CONTENT_TYPES = {
+    "audio/wav", "audio/x-wav", "audio/wave",
+    "audio/mpeg", "audio/mp3", "audio/x-mp3",
+    "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/aac", "audio/x-aac", "audio/mp4a-latm",
+    "audio/ogg", "audio/webm", "audio/flac", "application/octet-stream", ""
+}
 
 
 @app.get("/api/health", response_model=HealthResponse)
@@ -74,7 +79,8 @@ async def synthesize(
     if language not in LANGUAGE_CODES:
         raise HTTPException(400, "Desteklenmeyen hedef dil.")
     suffix = Path(voice.filename or "").suffix.lower()
-    if suffix not in ALLOWED_EXTENSIONS or voice.content_type not in ALLOWED_CONTENT_TYPES:
+    content_type = (voice.content_type or "").lower().split(";")[0].strip()
+    if suffix not in ALLOWED_EXTENSIONS and content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(415, "Yalnızca WAV, MP3 veya M4A ses dosyaları kabul edilir.")
 
     workspace = Path(tempfile.mkdtemp(prefix="voice-ai-"))
